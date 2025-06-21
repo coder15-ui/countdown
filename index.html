@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Answer Reveal Challenge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .flip-card {
+            perspective: 1000px;
+        }
+        .flip-card-inner {
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .flip-card.active .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+        .flip-card-front, .flip-card-back {
+            backface-visibility: hidden;
+        }
+        .flip-card-back {
+            transform: rotateY(180deg);
+        }
+        /* Custom animation */
+        @keyframes countdown {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+        .timer-bar {
+            height: 10px;
+            background: #4f46e5;
+            animation: countdown linear forwards;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-3xl w-full bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300">
+        <!-- Header -->
+        <div class="bg-indigo-600 py-6 px-8 text-white">
+            <h1 class="text-3xl font-bold">Answer Reveal Challenge</h1>
+            <p class="text-indigo-100">Submit your answers and wait for the big reveal!</p>
+        </div>
+        
+        <div class="p-8 space-y-8">
+            <!-- Game state container -->
+            <div id="gameStateContainer" class="space-y-6">
+                <!-- Name Entry Phase -->
+                <div id="nameEntryPhase" class="space-y-4">
+                    <h2 class="text-2xl font-semibold text-gray-800">Enter Names</h2>
+                    <p class="text-gray-600">All participants must enter their names before answers can be submitted.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="name1" class="block text-sm font-medium text-gray-700 mb-1">Player 1</label>
+                            <input type="text" id="name1" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Your name">
+                        </div>
+                        <div>
+                            <label for="name2" class="block text-sm font-medium text-gray-700 mb-1">Player 2</label>
+                            <input type="text" id="name2" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Friend's name">
+                        </div>
+                        <div>
+                            <label for="name3" class="block text-sm font-medium text-gray-700 mb-1">Player 3</label>
+                            <input type="text" id="name3" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Friend's name">
+                        </div>
+                    </div>
+                    <button id="confirmNames" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-6 rounded-lg transition duration-200">
+                        Confirm Names
+                    </button>
+                </div>
+                
+                <!-- Answer Entry Phase (hidden initially) -->
+                <div id="answerEntryPhase" class="hidden space-y-4">
+                    <h2 class="text-2xl font-semibold text-gray-800">Submit Your Answers</h2>
+                    <p class="text-gray-600">Enter your answers below. They will be revealed when time runs out.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="space-y-2">
+                            <label id="player1NameLabel" class="block text-sm font-medium text-gray-700">Player 1</label>
+                            <textarea id="answer1" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" rows="3" placeholder="Your answer"></textarea>
+                        </div>
+                        <div class="space-y-2">
+                            <label id="player2NameLabel" class="block text-sm font-medium text-gray-700">Player 2</label>
+                            <textarea id="answer2" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" rows="3" placeholder="Friend's answer"></textarea>
+                        </div>
+                        <div class="space-y-2">
+                            <label id="player3NameLabel" class="block text-sm font-medium text-gray-700">Player 3</label>
+                            <textarea id="answer3" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" rows="3" placeholder="Friend's answer"></textarea>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <select id="timerSelect" class="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="30">30 seconds</option>
+                            <option value="60">1 minute</option>
+                            <option value="120">2 minutes</option>
+                            <option value="300">5 minutes</option>
+                        </select>
+                        <button id="startTimer" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-6 rounded-lg transition duration-200">
+                            Start Timer
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Timer Phase (hidden initially) -->
+                <div id="timerPhase" class="hidden space-y-4">
+                    <div class="flex flex-col items-center justify-center space-y-2">
+                        <h2 class="text-2xl font-semibold text-gray-800">Time Remaining</h2>
+                        <div id="timerDisplay" class="text-4xl font-bold text-indigo-600">00:00</div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div id="timerProgress" class="timer-bar h-2.5 rounded-full bg-indigo-600" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="flip-card" id="card1">
+                            <div class="flip-card-inner bg-white border rounded-xl overflow-hidden">
+                                <div class="flip-card-front p-6">
+                                    <h3 id="player1TimerLabel" class="font-medium text-gray-700 mb-2">Player 1</h3>
+                                    <div class="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center">
+                                        <span class="text-gray-400">Answer hidden</span>
+                                    </div>
+                                </div>
+                                <div class="flip-card-back p-6">
+                                    <h3 id="player1RevealLabel" class="font-medium text-gray-700 mb-2">Player 1</h3>
+                                    <div id="answer1Reveal" class="w-full min-h-32 p-4 bg-indigo-50 rounded-lg"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flip-card" id="card2">
+                            <div class="flip-card-inner bg-white border rounded-xl overflow-hidden">
+                                <div class="flip-card-front p-6">
+                                    <h3 id="player2TimerLabel" class="font-medium text-gray-700 mb-2">Player 2</h3>
+                                    <div class="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center">
+                                        <span class="text-gray-400">Answer hidden</span>
+                                    </div>
+                                </div>
+                                <div class="flip-card-back p-6">
+                                    <h3 id="player2RevealLabel" class="font-medium text-gray-700 mb-2">Player 2</h3>
+                                    <div id="answer2Reveal" class="w-full min-h-32 p-4 bg-indigo-50 rounded-lg"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flip-card" id="card3">
+                            <div class="flip-card-inner bg-white border rounded-xl overflow-hidden">
+                                <div class="flip-card-front p-6">
+                                    <h3 id="player3TimerLabel" class="font-medium text-gray-700 mb-2">Player 3</h3>
+                                    <div class="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center">
+                                        <span class="text-gray-400">Answer hidden</span>
+                                    </div>
+                                </div>
+                                <div class="flip-card-back p-6">
+                                    <h3 id="player3RevealLabel" class="font-medium text-gray-700 mb-2">Player 3</h3>
+                                    <div id="answer3Reveal" class="w-full min-h-32 p-4 bg-indigo-50 rounded-lg"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="resetGame" class="hidden bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-6 rounded-lg transition duration-200">
+                        Play Again
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Sharing Instructions -->
+            <div class="bg-indigo-50 p-4 rounded-lg">
+                <h3 class="font-medium text-indigo-800 mb-2">How to play with friends:</h3>
+                <ol class="list-decimal list-inside text-indigo-700 space-y-1">
+                    <li>Share this page's link with your two friends</li>
+                    <li>Enter all three names together (can be done on different devices)</li>
+                    <li>Each submit your answers</li>
+                    <li>Wait for the timer to reveal all answers at once!</li>
+                </ol>
+                <div id="shareContainer" class="mt-4 hidden">
+                    <div class="flex items-center space-x-2">
+                        <input id="shareLink" type="text" readonly class="flex-1 px-3 py-2 border rounded-lg bg-white">
+                        <button id="copyLink" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition duration-200">Copy</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM elements
+            const nameEntryPhase = document.getElementById('nameEntryPhase');
+            const answerEntryPhase = document.getElementById('answerEntryPhase');
+            const timerPhase = document.getElementById('timerPhase');
+            const confirmNames = document.getElementById('confirmNames');
+            const startTimer = document.getElementById('startTimer');
+            const resetGame = document.getElementById('resetGame');
+            const timerDisplay = document.getElementById('timerDisplay');
+            const timerProgress = document.getElementById('timerProgress');
+            const timerSelect = document.getElementById('timerSelect');
+            const shareContainer = document.getElementById('shareContainer');
+            const shareLink = document.getElementById('shareLink');
+            const copyLink = document.getElementById('copyLink');
+            
+            // Variables
+            let timerInterval;
+            let timeLeft = 0;
+            let namesConfirmed = false;
+            
+            // Handle URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const sharedTimer = urlParams.get('timer');
+            if (sharedTimer) {
+                timerSelect.value = sharedTimer;
+            }
+            
+            // Generate share link
+            function generateShareLink() {
+                const currentUrl = new URL(window.location.href);
+                currentUrl.searchParams.set('timer', timerSelect.value);
+                return currentUrl.toString();
+            }
+            
+            // Show share link
+            shareLink.value = generateShareLink();
+            shareContainer.classList.remove('hidden');
+            
+            // Copy link to clipboard
+            copyLink.addEventListener('click', function() {
+                shareLink.select();
+                document.execCommand('copy');
+                const originalText = copyLink.textContent;
+                copyLink.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyLink.textContent = originalText;
+                }, 2000);
+            });
+            
+            // Confirm names
+            confirmNames.addEventListener('click', function() {
+                const name1 = document.getElementById('name1').value.trim();
+                const name2 = document.getElementById('name2').value.trim();
+                const name3 = document.getElementById('name3').value.trim();
+                
+                if (!name1 || !name2 || !name3) {
+                    alert('Please enter names for all three players!');
+                    return;
+                }
+                
+                // Update labels with names
+                document.getElementById('player1NameLabel').textContent = name1;
+                document.getElementById('player2NameLabel').textContent = name2;
+                document.getElementById('player3NameLabel').textContent = name3;
+                document.getElementById('player1TimerLabel').textContent = name1;
+                document.getElementById('player2TimerLabel').textContent = name2;
+                document.getElementById('player3TimerLabel').textContent = name3;
+                document.getElementById('player1RevealLabel').textContent = name1;
+                document.getElementById('player2RevealLabel').textContent = name2;
+                document.getElementById('player3RevealLabel').textContent = name3;
+                
+                // Hide name entry, show answer entry
+                nameEntryPhase.classList.add('hidden');
+                answerEntryPhase.classList.remove('hidden');
+                namesConfirmed = true;
+                
+                // Scroll to answers
+                answerEntryPhase.scrollIntoView({ behavior: 'smooth' });
+            });
+            
+            // Start timer
+            startTimer.addEventListener('click', function() {
+                const answer1 = document.getElementById('answer1').value.trim();
+                const answer2 = document.getElementById('answer2').value.trim();
+                const answer3 = document.getElementById('answer3').value.trim();
+                
+                if (!namesConfirmed) {
+                    alert('Please confirm names first!');
+                    return;
+                }
+                
+                if (!answer1 || !answer2 || !answer3) {
+                    alert('All players must submit answers before starting the timer!');
+                    return;
+                }
+                
+                // Store answers for reveal
+                document.getElementById('answer1Reveal').textContent = answer1;
+                document.getElementById('answer2Reveal').textContent = answer2;
+                document.getElementById('answer3Reveal').textContent = answer3;
+                
+                // Start timer
+                timeLeft = parseInt(timerSelect.value);
+                updateTimerDisplay();
+                
+                // Hide answer entry, show timer
+                answerEntryPhase.classList.add('hidden');
+                timerPhase.classList.remove('hidden');
+                resetGame.classList.add('hidden');
+                
+                // Set progress bar animation
+                timerProgress.style.animationDuration = ${timeLeft}s;
+                timerProgress.classList.add('timer-bar');
+                
+                // Start countdown
+                timerInterval = setInterval(function() {
+                    timeLeft--;
+                    updateTimerDisplay();
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        revealAnswers();
+                        resetGame.classList.remove('hidden');
+                    }
+                }, 1000);
+                
+                // Scroll to timer
+                timerPhase.scrollIntoView({ behavior: 'smooth' });
+            });
+            
+            // Update timer display
+            function updateTimerDisplay() {
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                timerDisplay.textContent = ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')};
+            }
+            
+            // Reveal answers
+            function revealAnswers() {
+                document.getElementById('card1').classList.add('active');
+                document.getElementById('card2').classList.add('active');
+                document.getElementById('card3').classList.add('active');
+            }
+            
+            // Reset game
+            resetGame.addEventListener('click', function() {
+                // Clear timer
+                clearInterval(timerInterval);
+                
+                // Reset UI
+                timerPhase.classList.add('hidden');
+                answerEntryPhase.classList.remove('hidden');
+                resetGame.classList.add('hidden');
+                
+                // Flip cards back
+                document.getElementById('card1').classList.remove('active');
+                document.getElementById('card2').classList.remove('active');
+                document.getElementById('card3').classList.remove('active');
+                
+                // Clear answers
+                document.getElementById('answer1').value = '';
+                document.getElementById('answer2').value = '';
+                document.getElementById('answer3').value = '';
+                
+                // Reset timer progress
+                timerProgress.classList.remove('timer-bar');
+                
+                // Scroll to answers
+                answerEntryPhase.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+    </script>
+</body>
+</html>
