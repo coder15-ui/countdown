@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Secret Countdown Room</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #111;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .container {
+      text-align: center;
+      max-width: 500px;
+    }
+    textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 20px;
+      height: 100px;
+      font-size: 16px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      background: #0ff;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    #reveal {
+      display: none;
+      margin-top: 20px;
+      background: #222;
+      padding: 15px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⏳ Secret Reveal in <span id="timer">5:00</span></h1>
+    <textarea id="secret" placeholder="Write your secret message here..."></textarea>
+    <button onclick="storeSecret()">Submit Secret</button>
+
+    <div id="reveal">
+      <h2>🕵 Revealed Secret:</h2>
+      <p id="message"></p>
+    </div>
+  </div>
+
+  <script>
+    const revealTime = new Date("2025-06-21T15:34:58").getTime();
+    let userSecret = "";
+
+    function storeSecret() {
+      userSecret = document.getElementById("secret").value;
+      alert("Your secret is locked! It will reveal when time ends.");
+    }
+
+    const timerEl = document.getElementById("timer");
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = revealTime - now;
+
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+      timerEl.innerText = ${minutes}:${seconds < 10 ? '0' : ''}${seconds};
+
+      if (distance < 0) {
+        clearInterval(interval);
+        timerEl.innerText = "0:00";
+        document.getElementById("reveal").style.display = "block";
+        document.getElementById("message").innerText = userSecret || "No secret submitted.";
+      }
+    }, 1000);
+  </script>
+</body>
+</html>
