@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Answer Revealer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .fade-in {
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+    <div class="max-w-md mx-auto">
+        <h1 class="text-2xl font-bold text-center mb-6">Answer Revealer</h1>
+        
+        <div id="inputSection" class="bg-white rounded-lg shadow p-6 mb-4">
+            <p class="text-gray-600 mb-4">Answers submitted: <span id="count">0</span>/3</p>
+            <textarea id="answerInput" class="w-full p-3 border rounded mb-4" placeholder="Type your answer here"></textarea>
+            <button id="submitBtn" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+                Submit Answer
+            </button>
+        </div>
+
+        <div id="revealSection" class="hidden bg-white rounded-lg shadow p-6">
+            <button id="revealBtn" class="w-full bg-green-500 text-white py-2 rounded mb-4 hover:bg-green-600">
+                Reveal All Answers
+            </button>
+        </div>
+
+        <div id="resultsSection" class="hidden">
+            <div id="answersContainer" class="space-y-3"></div>
+            <button id="resetBtn" class="w-full mt-4 bg-gray-500 text-white py-2 rounded hover:bg-gray-600">
+                Start New Round
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const inputSection = document.getElementById('inputSection');
+            const revealSection = document.getElementById('revealSection');
+            const resultsSection = document.getElementById('resultsSection');
+            const answerInput = document.getElementById('answerInput');
+            const submitBtn = document.getElementById('submitBtn');
+            const revealBtn = document.getElementById('revealBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const countDisplay = document.getElementById('count');
+            const answersContainer = document.getElementById('answersContainer');
+            
+            // Game state
+            let answers = JSON.parse(localStorage.getItem('answers')) || [];
+            let playerId = localStorage.getItem('playerId') || 'player_' + Math.random().toString(36).substr(2, 9);
+            let hasSubmitted = localStorage.getItem('hasSubmitted') === 'true';
+
+            // Initialize
+            if (hasSubmitted) {
+                answerInput.value = localStorage.getItem('myAnswer') || '';
+                answerInput.disabled = true;
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitted';
+                submitBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                submitBtn.classList.add('bg-gray-400');
+            }
+            updateCount();
+
+            // Event listeners
+            submitBtn.addEventListener('click', submitAnswer);
+            revealBtn.addEventListener('click', showAnswers);
+            resetBtn.addEventListener('click', resetGame);
+
+            // Functions
+            function submitAnswer() {
+                if (!answerInput.value.trim()) return;
+                
+                const answer = {
+                    text: answerInput.value.trim(),
+                    id: playerId
+                };
+
+                // Update or add answer
+                const existingIndex = answers.findIndex(a => a.id === playerId);
+                if (existingIndex >= 0) {
+                    answers[existingIndex] = answer;
+                } else {
+                    answers.push(answer);
+                }
+
+                // Save state
+                localStorage.setItem('answers', JSON.stringify(answers));
+                localStorage.setItem('myAnswer', answer.text);
+                localStorage.setItem('hasSubmitted', 'true');
+                localStorage.setItem('playerId', playerId);
+                
+                // Update UI
+                answerInput.disabled = true;
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitted';
+                submitBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                submitBtn.classList.add('bg-gray-400');
+                hasSubmitted = true;
+                
+                updateCount();
+            }
+
+            function updateCount() {
+                answers = JSON.parse(localStorage.getItem('answers')) || [];
+                countDisplay.textContent = answers.length;
+                
+                if (answers.length >= 3) {
+                    revealSection.classList.remove('hidden');
+                } else {
+                    revealSection.classList.add('hidden');
+                }
+            }
+
+            function showAnswers() {
+                answers = JSON.parse(localStorage.getItem('answers')) || [];
+                if (answers.length < 3) return;
+                
+                // Shuffle answers for anonymity
+                answers = answers.sort(() => Math.random() - 0.5);
+                
+                // Display answers
+                answersContainer.innerHTML = '';
+                answers.forEach((answer, i) => {
+                    const div = document.createElement('div');
+                    div.className = 'bg-gray-50 p-4 rounded fade-in';
+                    div.style.animationDelay = ${i * 0.1}s;
+                    div.textContent = answer.text;
+                    answersContainer.appendChild(div);
+                });
+                
+                // Show results
+                inputSection.classList.add('hidden');
+                revealSection.classList.add('hidden');
+                resultsSection.classList.remove('hidden');
+            }
+
+            function resetGame() {
+                localStorage.removeItem('answers');
+                localStorage.removeItem('myAnswer');
+                localStorage.removeItem('hasSubmitted');
+                
+                answers = [];
+                answerInput.value = '';
+                answerInput.disabled = false;
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Answer';
+                submitBtn.classList.remove('bg-gray-400');
+                submitBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                hasSubmitted = false;
+                
+                resultsSection.classList.add('hidden');
+                inputSection.classList.remove('hidden');
+                updateCount();
+            }
+
+            // Check for new submissions periodically
+            setInterval(updateCount, 2000);
+        });
+    </script>
+</body>
+</html>
